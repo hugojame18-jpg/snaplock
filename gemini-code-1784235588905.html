@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SnapScan — Débloque des fonctions cachées</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --yellow:#FFFC00;
+    --yellow-deep:#F5D400;
+    --yellow-soft:#FFF56B;
+    --ink:#0c0c0e;
+    --ink-soft:#5b5b63;
+    --white:#ffffff;
+    --glass:rgba(255,255,255,.5);
+    --glass-strong:rgba(255,255,255,.62);
+    --line:rgba(255,255,255,.55);
+    --radius:26px;
+    --shadow:0 22px 60px -18px rgba(20,20,30,.35);
+    --shadow-sm:0 8px 24px -10px rgba(20,20,30,.25);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Inter","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+    letter-spacing:-.1px;
+    color:var(--ink);
+    min-height:100%;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding:26px 20px 48px;
+    position:relative;
+    overflow-x:hidden;
+    background:
+      radial-gradient(900px 500px at 18% -6%, #fff7a8 0%, transparent 55%),
+      radial-gradient(800px 520px at 92% 8%, #fff0c2 0%, transparent 50%),
+      linear-gradient(178deg,#fffdf2 0%, #ffffff 42%, #fdfdff 100%);
+  }
+  .blob{position:fixed;border-radius:50%;filter:blur(46px);z-index:0;opacity:.7;pointer-events:none}
+  .blob.b1{width:320px;height:320px;background:#ffe600;top:-90px;left:-80px;animation:float 9s ease-in-out infinite}
+  .blob.b2{width:260px;height:260px;background:#fff09a;bottom:-60px;right:-70px;animation:float 11s ease-in-out infinite reverse}
+  .blob.b3{width:200px;height:200px;background:#fff2b0;top:40%;right:-90px;animation:float 13s ease-in-out infinite}
+  @keyframes float{0%,100%{transform:translateY(0) translateX(0)}50%{transform:translateY(-26px) translateX(16px)}}
+
+  .app{width:100%;max-width:452px;position:relative;z-index:1}
+  .screen{display:none;animation:pop .5s cubic-bezier(.2,.85,.25,1)}
+  .screen.active{display:block}
+  @keyframes pop{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
+  @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+
+  /* Logo / hero */
+  .top{text-align:center;margin-bottom:20px}
+  .ghost-wrap{
+    width:92px;height:92px;margin:4px auto 14px;border-radius:28px;
+    background:linear-gradient(160deg,#fff100,#ffd000);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 16px 36px -10px rgba(245,212,0,.75), inset 0 2px 4px rgba(255,255,255,.6);
+    animation:floaty 4.5s ease-in-out infinite;
+  }
+  @keyframes floaty{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-8px) rotate(2deg)}}
+  .ghost{width:52px;height:52px;display:block;filter:drop-shadow(0 4px 6px rgba(0,0,0,.15))}
+  .brandline{display:flex;align-items:center;justify-content:center;gap:8px;font-weight:900;font-size:20px;letter-spacing:-.4px}
+  .brandline .dot{width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 4px rgba(34,197,94,.18)}
+
+  .center{display:flex;justify-content:center}
+  .badge{
+    display:inline-flex;align-items:center;gap:7px;margin:18px 0 16px;
+    background:rgba(12,12,14,.92);color:var(--yellow);font-weight:700;font-size:12px;
+    padding:8px 15px;border-radius:100px;letter-spacing:.2px;
+    box-shadow:0 10px 24px -10px rgba(0,0,0,.5);
+  }
+  .hero-title{text-align:center;font-size:31px;font-weight:900;line-height:1.12;letter-spacing:-1px;margin-bottom:12px}
+  .hero-title .hl{position:relative;white-space:nowrap;padding:0 5px;border-radius:8px;color:#111}
+  .hero-title .hl::before{content:"";position:absolute;inset:0;background:var(--yellow);border-radius:8px;z-index:-1;transform:rotate(-1.2deg)}
+  .hero-desc{text-align:center;color:var(--ink-soft);font-size:15.5px;line-height:1.6;margin:0 auto 24px;max-width:380px}
+  .hero-desc b{color:var(--ink)}
+
+  /* Cartes */
+  .card{
+    background:linear-gradient(160deg,rgba(255,255,255,.62),rgba(255,255,255,.42));
+    -webkit-backdrop-filter:blur(26px) saturate(160%);backdrop-filter:blur(26px) saturate(160%);
+    border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow), inset 0 1px 1px rgba(255,255,255,.7);
+    padding:24px 22px;
+  }
+  label{font-weight:700;font-size:13.5px;display:block;margin-bottom:9px}
+  .input-wrap{position:relative;margin-bottom:14px}
+  .at{position:absolute;left:17px;top:50%;transform:translateY(-50%);font-weight:800;color:#c9ab00;font-size:18px}
+  input[type=text]{
+    width:100%;padding:16px 16px 16px 40px;font-size:16.5px;font-weight:600;
+    border:2px solid rgba(0,0,0,.07);border-radius:16px;background:rgba(255,255,255,.85);
+    outline:none;transition:border .2s, box-shadow .2s, background .2s;
+  }
+  input[type=text]::placeholder{color:#b7b7bd;font-weight:500}
+  input[type=text]:focus{border-color:var(--yellow-deep);background:#fff;box-shadow:0 0 0 4px rgba(255,225,0,.25)}
+  input[type=text].plain{padding-left:16px}
+
+  .btn{
+    width:100%;padding:17px;font-size:16.5px;font-weight:800;border:none;border-radius:16px;cursor:pointer;
+    background:linear-gradient(180deg,#fff42a,#ffd400);color:var(--ink);position:relative;overflow:hidden;
+    box-shadow:0 14px 30px -10px rgba(245,212,0,.9);transition:transform .12s, box-shadow .2s, filter .2s;
+  }
+  .btn::after{content:"";position:absolute;top:0;left:-120%;width:60%;height:100%;
+    background:linear-gradient(100deg,transparent,rgba(255,255,255,.75),transparent);transform:skewX(-18deg);animation:shine 3.4s ease-in-out infinite}
+  @keyframes shine{0%,60%{left:-120%}80%,100%{left:130%}}
+  .btn:hover{transform:translateY(-1px);filter:brightness(1.02)}
+  .btn:active{transform:scale(.985)}
+  .btn.secondary{background:#141416;color:#fff;box-shadow:0 12px 28px -12px rgba(0,0,0,.7);margin-top:12px}
+  .btn.secondary::after{display:none}
+
+  .hint{text-align:center;color:#9a9aa2;font-size:12px;margin-top:14px;line-height:1.4}
+  .err{color:#e0353b;font-size:13px;font-weight:600;margin:-4px 0 12px;display:none}
+
+  .lock-note{
+    display:flex;gap:10px;align-items:center;margin-top:16px;
+    background:rgba(255,251,214,.7);border:1px solid rgba(240,225,120,.6);
+    border-radius:14px;padding:11px 14px;font-size:12.5px;line-height:1.45;color:var(--ink-soft);
+  }
+  .lock-note b{color:var(--ink)}
+
+  /* Grille de fonctionnalités */
+  .feat-head{display:flex;align-items:center;gap:8px;margin:26px 2px 14px;font-weight:900;font-size:16px}
+  .feat-head .pill{font-size:11px;font-weight:800;color:#0e9c46;background:#e7fbef;border:1px solid #bff0d2;padding:3px 9px;border-radius:100px;margin-left:auto}
+  .features{display:grid;grid-template-columns:1fr 1fr;gap:11px;list-style:none}
+  .features li{
+    position:relative;display:flex;flex-direction:column;gap:10px;padding:15px 14px;
+    background:linear-gradient(160deg,rgba(255,255,255,.6),rgba(255,255,255,.4));
+    -webkit-backdrop-filter:blur(20px) saturate(150%);backdrop-filter:blur(20px) saturate(150%);
+    border:1px solid var(--line);border-radius:18px;
+    box-shadow:var(--shadow-sm), inset 0 1px 1px rgba(255,255,255,.6);
+    transition:transform .18s, box-shadow .18s;animation:rise .5s both;
+  }
+  .features li:hover{transform:translateY(-3px);box-shadow:0 16px 34px -14px rgba(20,20,30,.4)}
+  .features li:nth-child(2){animation-delay:.04s}
+  .features li:nth-child(3){animation-delay:.08s}
+  .features li:nth-child(4){animation-delay:.12s}
+  .features li:nth-child(5){animation-delay:.16s}
+  .features li:nth-child(6){animation-delay:.2s}
+  .features li:nth-child(7){animation-delay:.24s}
+  .features li:last-child:nth-child(odd){grid-column:1 / -1}
+  .feat-ico{
+    width:44px;height:44px;flex:none;border-radius:14px;
+    background:linear-gradient(160deg,#fff42a,#ffd000);
+    display:flex;align-items:center;justify-content:center;font-size:22px;
+    box-shadow:0 8px 16px -6px rgba(245,212,0,.8), inset 0 1px 2px rgba(255,255,255,.6);
+  }
+  .feat-txt{font-size:14.5px;font-weight:800;line-height:1.25}
+  .feat-corner{position:absolute;top:12px;right:12px;font-size:9px;font-weight:900;letter-spacing:.4px;
+    color:#0e9c46;background:#e7fbef;border:1px solid #bff0d2;padding:2px 6px;border-radius:100px}
+
+  /* Avis (carrousel) */
+  .section-head{display:flex;align-items:center;justify-content:space-between;margin:30px 2px 14px}
+  .section-head h3{font-size:17px;font-weight:900}
+  .rating-sum{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-soft);font-weight:700;
+    background:var(--glass);border:1px solid var(--line);padding:6px 11px;border-radius:100px;box-shadow:var(--shadow-sm)}
+  .rating-sum b{color:var(--ink);font-size:14px}
+
+  .reviews{
+    display:flex;gap:13px;overflow-x:auto;padding:4px 2px 14px;margin:0 -2px;
+    scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;
+  }
+  .reviews::-webkit-scrollbar{height:6px}
+  .reviews::-webkit-scrollbar-thumb{background:rgba(0,0,0,.14);border-radius:10px}
+  .review{
+    min-width:265px;max-width:265px;scroll-snap-align:start;
+    background:linear-gradient(160deg,rgba(255,255,255,.66),rgba(255,255,255,.46));
+    -webkit-backdrop-filter:blur(20px) saturate(150%);backdrop-filter:blur(20px) saturate(150%);
+    border:1px solid var(--line);border-radius:20px;padding:17px;
+    box-shadow:var(--shadow-sm), inset 0 1px 1px rgba(255,255,255,.6);
+  }
+  .review-top{display:flex;align-items:center;gap:11px;margin-bottom:11px}
+  .avatar{
+    width:38px;height:38px;flex:none;border-radius:50%;
+    background:linear-gradient(160deg,#fff42a,#ffce00);color:#111;
+    display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;
+    box-shadow:0 6px 14px -6px rgba(245,212,0,.9);
+  }
+  .review-who{display:flex;flex-direction:column;gap:1px}
+  .review-who b{font-size:14px;font-weight:800}
+  .review-stars{color:#f5b301;font-size:12.5px;letter-spacing:1.5px}
+  .review-text{font-size:13.5px;line-height:1.55;color:var(--ink-soft)}
+
+  /* Formulaire d'avis */
+  .review-form h3{font-size:17px;font-weight:900;margin-bottom:3px}
+  .stars-pick{display:flex;gap:7px;margin:8px 0 16px;font-size:32px;cursor:pointer;user-select:none}
+  .stars-pick span{color:#e4e4ea;transition:transform .12s, color .15s;line-height:1}
+  .stars-pick span:hover{transform:scale(1.18)}
+  .stars-pick span.on{color:#f5b301;filter:drop-shadow(0 3px 5px rgba(245,179,1,.4))}
+  .review-form textarea{
+    width:100%;min-height:78px;resize:vertical;padding:14px 15px;font-size:15px;font-family:inherit;
+    border:2px solid rgba(0,0,0,.07);border-radius:15px;background:rgba(255,255,255,.85);outline:none;margin-bottom:12px;
+    transition:border .2s, box-shadow .2s, background .2s;
+  }
+  .review-form textarea:focus{border-color:var(--yellow-deep);background:#fff;box-shadow:0 0 0 4px rgba(255,225,0,.25)}
+  .form-err{color:#e0353b;font-size:13px;font-weight:600;margin:-4px 0 10px;display:none}
+  .thanks{display:none;text-align:center;background:#e7fbef;border:1px solid #bff0d2;color:#0e9c46;
+    font-weight:800;border-radius:14px;padding:12px;margin-bottom:12px}
+  .thanks.show{display:block;animation:pop .3s ease}
+
+  .footer{text-align:center;color:#b4b4bc;font-size:11.5px;margin-top:26px;line-height:1.5}
+
+  /* Écran analyse */
+  .analyse-head{text-align:center;margin-bottom:22px}
+  .analyse-name{font-weight:800;font-size:19px}
+  .analyse-name b{background:var(--yellow);padding:0 7px;border-radius:7px}
+  .ring{width:160px;height:160px;margin:14px auto 8px;position:relative}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:900;letter-spacing:-1px}
+  .steps{margin-top:16px;list-style:none}
+  .steps li{display:flex;align-items:center;gap:13px;padding:12px 6px;font-weight:600;color:#b0b0b8;
+    border-bottom:1px solid var(--line);font-size:15px;transition:color .3s}
+  .steps li .dot{width:24px;height:24px;border-radius:50%;border:2px solid #dcdce2;flex:none;
+    display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .3s}
+  .steps li.done{color:var(--ink)}
+  .steps li.done .dot{background:var(--yellow);border-color:var(--yellow-deep)}
+  .steps li.active{color:var(--ink)}
+  .steps li.active .dot{border-color:var(--yellow-deep);animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .robot-check{display:none;margin-top:18px;padding-top:20px;border-top:1px solid var(--line);text-align:center;animation:pop .4s ease}
+  .robot-check.show{display:block}
+  .robot-title{font-weight:900;font-size:18px;letter-spacing:-.3px}
+  .robot-sub{color:var(--ink-soft);font-size:14px;line-height:1.5;margin:6px 0 16px}
+
+  /* Écran éligibilité */
+  .eligible-card{text-align:center;margin-top:20px}
+  .eligible-emoji{font-size:60px;line-height:1;animation:floaty 3.5s ease-in-out infinite}
+  .eligible-title{font-weight:900;font-size:28px;letter-spacing:-.6px;margin-top:10px;color:#0e9c46}
+  .eligible-sub{font-size:15px;color:var(--ink-soft);margin-top:6px}
+  .eligible-sub b{background:var(--yellow);padding:0 6px;border-radius:6px;color:#111}
+  .eligible-text{font-size:14.5px;color:var(--ink-soft);line-height:1.6;margin:16px 4px 20px}
+  .eligible-text b{color:var(--ink)}
+  .recap-list{list-style:none;text-align:left;margin:0 0 22px}
+  .recap-list li{display:flex;align-items:center;gap:11px;padding:11px 4px;font-weight:700;font-size:14.5px;border-bottom:1px solid var(--line)}
+  .recap-list li:last-child{border-bottom:none}
+  .recap-ico{font-size:19px;flex:none;width:24px;text-align:center}
+  .recap-check{margin-left:auto;flex:none;width:24px;height:24px;border-radius:50%;background:#1fbf5a;color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 5px 12px -5px rgba(31,191,90,.9)}
+  #access{margin-bottom:4px}
+</style>
+</head>
+<body>
+<div class="blob b1"></div>
+<div class="blob b2"></div>
+<div class="blob b3"></div>
+
+<div class="app">
+
+  <!-- SCREEN 1 : ACCUEIL -->
+  <section class="screen active" id="screen-home">
+    <div class="top">
+      <div class="ghost-wrap">
+        <svg class="ghost" viewBox="0 0 100 100" fill="none">
+          <path d="M50 8c-16 0-27 12-27 30 0 6-1 10-5 13-3 2-6 3-6 6 0 3 4 4 8 5 2 .5 3 2 3 4 0 2 2 3 5 2 3-1 5-1 8 1 4 3 8 5 14 5s10-2 14-5c3-2 5-2 8-1 3 1 5 0 5-2 0-2 1-3.5 3-4 4-1 8-2 8-5 0-3-3-4-6-6-4-3-5-7-5-13 0-18-11-30-27-30z" fill="#ffffff" stroke="#0b0b0b" stroke-width="4" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="brandline"><span class="dot"></span>SnapScan</div>
+    </div>
+
+    <div class="center"><span class="badge">✨ Fonctionnalités exclusives</span></div>
+    <h1 class="hero-title">Débloque des fonctions<br><span class="hl">que Snapchat cache</span></h1>
+    <p class="hero-desc">
+      Entre ton <b>pseudo Snapchat</b> pour activer des fonctionnalités
+      <b>pas disponibles de base</b> dans l'application.
+    </p>
+
+    <div class="card">
+      <label for="pseudo">Ton pseudo Snapchat</label>
+      <div class="input-wrap">
+        <span class="at">@</span>
+        <input type="text" id="pseudo" placeholder="ton_pseudo_snap" autocomplete="off" maxlength="30">
+      </div>
+      <p class="err" id="err">Écris ton pseudo Snapchat pour continuer ✍️</p>
+      <button class="btn" id="go">🔓 Débloquer les fonctionnalités</button>
+
+      <div class="lock-note">
+        <span>🔓</span>
+        <span>Ton pseudo sert à <b>débloquer des accès plus poussés</b> sur ton Snapchat et à <b>vérifier ton éligibilité</b>.</span>
+      </div>
+    </div>
+
+    <div class="feat-head">🎁 Ce que tu débloques <span class="pill">7 EXCLUS</span></div>
+    <ul class="features">
+      <li><div class="feat-ico">👀</div><div class="feat-txt">Voir qui te regarde</div><span class="feat-corner">EXCLU</span></li>
+      <li><div class="feat-ico">🔁</div><div class="feat-txt">Replay illimité</div><span class="feat-corner">EXCLU</span></li>
+      <li><div class="feat-ico">📍</div><div class="feat-txt">Localisation avancée</div><span class="feat-corner">EXCLU</span></li>
+      <li><div class="feat-ico">🎨</div><div class="feat-txt">Filtres premium</div><span class="feat-corner">EXCLU</span></li>
+      <li><div class="feat-ico">✉️</div><div class="feat-txt">Voir les messages avant d'envoyer</div><span class="feat-corner">EXCLU</span></li>
+      <li><div class="feat-ico">📸</div><div class="feat-txt">Screen sans avertir la personne</div><span class="feat-corner">EXCLU</span></li>
+      <li><div class="feat-ico">👥</div><div class="feat-txt">Voir les listes d'amis</div><span class="feat-corner">EXCLU</span></li>
+    </ul>
+
+    <!-- AVIS -->
+    <div class="section-head">
+      <h3>Avis des utilisateurs</h3>
+      <span class="rating-sum">⭐ <b id="avg-rating">4.8</b>/5 · <span id="rev-count">0</span> avis</span>
+    </div>
+    <div class="reviews" id="reviews"></div>
+
+    <!-- LAISSER UN AVIS -->
+    <div class="section-head"><h3>Laisse ton avis</h3></div>
+    <div class="card review-form">
+      <p class="hint" style="text-align:left;margin:0 0 12px">Pas besoin de créer un compte — c'est 100% anonyme ✨</p>
+
+      <div class="thanks" id="thanks">Merci pour ton avis ! 💛</div>
+
+      <label>Ta note</label>
+      <div class="stars-pick" id="starsPick">
+        <span data-v="1">★</span><span data-v="2">★</span><span data-v="3">★</span><span data-v="4">★</span><span data-v="5">★</span>
+      </div>
+
+      <label for="rev-name">Ton prénom / pseudo <span style="color:#aaa;font-weight:500">(optionnel)</span></label>
+      <div class="input-wrap">
+        <input type="text" class="plain" id="rev-name" placeholder="Anonyme" autocomplete="off" maxlength="24">
+      </div>
+
+      <label for="rev-text">Ton message</label>
+      <textarea id="rev-text" placeholder="Dis ce que tu penses des fonctionnalités…" maxlength="240"></textarea>
+      <p class="form-err" id="rev-err">Ajoute une note et un petit message 🙏</p>
+
+      <button class="btn" id="submit-review">Publier mon avis</button>
+    </div>
+
+    <p class="footer">SnapScan · outil ludique — aucune donnée réelle n'est récupérée 👻</p>
+  </section>
+
+  <!-- SCREEN 2 : ANALYSE -->
+  <section class="screen" id="screen-analyse">
+    <div class="analyse-head">
+      <p class="analyse-name">Analyse de <b id="a-name">@pseudo</b></p>
+    </div>
+    <div class="card">
+      <div class="ring">
+        <svg width="160" height="160">
+          <circle cx="80" cy="80" r="70" stroke="#efefef" stroke-width="13" fill="none"/>
+          <circle id="ring-fg" cx="80" cy="80" r="70" stroke="#FFD400" stroke-width="13" fill="none"
+                  stroke-linecap="round" stroke-dasharray="440" stroke-dashoffset="440"/>
+        </svg>
+        <div class="pct" id="ring-pct">0%</div>
+      </div>
+      <ul class="steps" id="steps">
+        <li data-s><span class="dot"></span>Lecture du pseudo</li>
+        <li data-s><span class="dot"></span>Connexion au compte</li>
+        <li data-s><span class="dot"></span>Analyse de l'activité</li>
+        <li data-s><span class="dot"></span>Préparation des fonctionnalités</li>
+        <li data-s><span class="dot"></span>Dernière étape</li>
+      </ul>
+
+      <div class="robot-check" id="robotCheck">
+        <p class="robot-title">Dernière étape 🤖</p>
+        <p class="robot-sub">Confirme que tu n'es pas un robot pour débloquer l'accès.</p>
+        <button class="btn" id="notRobot">✅ Je ne suis pas un robot</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREEN 3 : ELIGIBILITE -->
+  <section class="screen" id="screen-recap">
+    <div class="card eligible-card">
+      <div class="eligible-emoji">🎉</div>
+      <h2 class="eligible-title">Tu es éligible !</h2>
+      <p class="eligible-sub"><b id="r-name">@pseudo</b>, ton compte est vérifié.</p>
+      <p class="eligible-text">
+        Tu débloques <b>toutes les fonctionnalités exclusives</b> ci-dessous —
+        celles qui ne sont pas disponibles de base sur Snapchat.
+      </p>
+
+      <ul class="recap-list">
+        <li><span class="recap-ico">👀</span>Voir qui te regarde<span class="recap-check">✓</span></li>
+        <li><span class="recap-ico">🔁</span>Replay illimité<span class="recap-check">✓</span></li>
+        <li><span class="recap-ico">📍</span>Localisation avancée<span class="recap-check">✓</span></li>
+        <li><span class="recap-ico">🎨</span>Filtres premium<span class="recap-check">✓</span></li>
+        <li><span class="recap-ico">✉️</span>Voir les messages avant d'envoyer<span class="recap-check">✓</span></li>
+        <li><span class="recap-ico">📸</span>Screen sans avertir la personne<span class="recap-check">✓</span></li>
+        <li><span class="recap-ico">👥</span>Voir les listes d'amis<span class="recap-check">✓</span></li>
+      </ul>
+
+      <button class="btn" id="access">🔓 Débloquer pour 2 €</button>
+      <p class="footer">SnapScan · outil ludique — pour le fun uniquement</p>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* ---------- Générateur déterministe basé sur le pseudo ---------- */
+function hash(str){
+  let h = 2166136261;
+  for(let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h,16777619); }
+  return h >>> 0;
+}
+function rng(seed){
+  return function(){
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function between(r,min,max){ return Math.floor(r()*(max-min+1))+min; }
+
+function analyze(pseudoRaw){
+  const pseudo = pseudoRaw.trim();
+  const r = rng(hash(pseudo.toLowerCase()));
+  const years = between(r,2,7);
+  const months = between(r,0,11);
+  const points = between(r,48000,932000);
+  return { pseudo, years, months, points };
+}
+
+/* ---------- Navigation ---------- */
+const screens = {
+  home: document.getElementById('screen-home'),
+  analyse: document.getElementById('screen-analyse'),
+  recap: document.getElementById('screen-recap')
+};
+function show(name){
+  Object.values(screens).forEach(s=>s.classList.remove('active'));
+  screens[name].classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+let current = null;
+
+/* ---------- Écran 1 -> Analyse ---------- */
+const input = document.getElementById('pseudo');
+const err = document.getElementById('err');
+document.getElementById('go').addEventListener('click', start);
+input.addEventListener('keydown', e=>{ if(e.key==='Enter') start(); });
+
+function start(){
+  const val = input.value.trim();
+  if(!val){ err.style.display='block'; input.focus(); return; }
+  err.style.display='none';
+  current = analyze(val);
+  runAnalyse(current);
+}
+
+/* ---------- Écran 2 : animation ---------- */
+function runAnalyse(data){
+  document.getElementById('a-name').textContent = '@'+data.pseudo;
+  show('analyse');
+
+  const ringFg = document.getElementById('ring-fg');
+  const ringPct = document.getElementById('ring-pct');
+  const steps = [...document.querySelectorAll('#steps li')];
+  steps.forEach(s=>s.classList.remove('done','active'));
+  const robotCheck = document.getElementById('robotCheck');
+  robotCheck.classList.remove('show');
+  const CIRC = 440;
+
+  const totalTime = 3200;
+  const startT = performance.now();
+
+  function frame(now){
+    const t = Math.min((now-startT)/totalTime,1);
+    const eased = t<.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
+    ringFg.style.strokeDashoffset = CIRC*(1-eased);
+    ringPct.textContent = Math.round(eased*100)+'%';
+
+    const stepIdx = Math.min(Math.floor(t*steps.length),steps.length-1);
+    steps.forEach((s,i)=>{
+      s.classList.toggle('done', i<stepIdx);
+      s.classList.toggle('active', i===stepIdx);
+    });
+
+    if(t<1){ requestAnimationFrame(frame); }
+    else {
+      steps.forEach(s=>{s.classList.add('done');s.classList.remove('active');});
+      // Fin du chargement : afficher le bouton "je ne suis pas un robot"
+      setTimeout(()=>robotCheck.classList.add('show'), 300);
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+/* Bouton "je ne suis pas un robot" -> page 3 */
+document.getElementById('notRobot').addEventListener('click', ()=>{
+  if(current) showRecap(current);
+});
+
+/* ---------- Écran 3 : éligibilité ---------- */
+function showRecap(data){
+  document.getElementById('r-name').textContent = '@'+data.pseudo;
+  show('recap');
+}
+
+/* ---------- Accès aux fonctionnalités ---------- */
+document.getElementById('access').addEventListener('click', ()=>{
+  window.location.href = "https://t.trklinkx.com/click?pid=4784&offer_id=12640";
+});
+
+/* ---------- Avis ---------- */
+const SEED_REVIEWS = [
+  {name:'Léa', stars:5, text:"J'ai enfin pu voir qui regarde mon profil, trop bien ! Rien à voir avec l'appli de base."},
+  {name:'Yanis', stars:5, text:"Le replay illimité c'est ce qui me manquait depuis des années. Merci 🙏"},
+  {name:'Anonyme', stars:4, text:"Simple et rapide, j'ai débloqué les filtres premium en 2 minutes."},
+  {name:'Manon', stars:5, text:"Franchement bluffée, des fonctions que Snap devrait proposer direct."}
+];
+const STORE_KEY = 'snapscan_reviews';
+
+function loadReviews(){
+  let saved=[];
+  try{ saved = JSON.parse(localStorage.getItem(STORE_KEY)||'[]'); }catch(e){ saved=[]; }
+  return [...saved, ...SEED_REVIEWS];
+}
+function saveUserReview(rev){
+  let saved=[];
+  try{ saved = JSON.parse(localStorage.getItem(STORE_KEY)||'[]'); }catch(e){ saved=[]; }
+  saved.unshift(rev);
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(saved)); }catch(e){}
+}
+function starStr(n){ return '★★★★★'.slice(0,n) + '☆☆☆☆☆'.slice(0,5-n); }
+function initial(name){ return (name||'A').trim().charAt(0).toUpperCase() || 'A'; }
+
+function renderReviews(){
+  const list = loadReviews();
+  const wrap = document.getElementById('reviews');
+  wrap.innerHTML='';
+  list.forEach(r=>{
+    const el=document.createElement('div'); el.className='review';
+    el.innerHTML =
+      '<div class="review-top">'+
+        '<div class="avatar">'+initial(r.name)+'</div>'+
+        '<div class="review-who"><b>'+escapeHtml(r.name||'Anonyme')+'</b>'+
+        '<span class="review-stars">'+starStr(r.stars)+'</span></div>'+
+      '</div>'+
+      '<div class="review-text">'+escapeHtml(r.text)+'</div>';
+    wrap.appendChild(el);
+  });
+  document.getElementById('rev-count').textContent = list.length;
+  const avg = list.reduce((s,r)=>s+r.stars,0)/list.length;
+  document.getElementById('avg-rating').textContent = avg.toFixed(1);
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* Sélecteur d'étoiles */
+let pickedStars = 0;
+const starsPick = document.getElementById('starsPick');
+const starEls = [...starsPick.querySelectorAll('span')];
+function paintStars(n){ starEls.forEach((s,i)=>s.classList.toggle('on', i<n)); }
+starEls.forEach(s=>{
+  s.addEventListener('click', ()=>{ pickedStars = +s.dataset.v; paintStars(pickedStars); });
+  s.addEventListener('mouseenter', ()=> paintStars(+s.dataset.v));
+});
+starsPick.addEventListener('mouseleave', ()=> paintStars(pickedStars));
+
+/* Publier un avis */
+document.getElementById('submit-review').addEventListener('click', ()=>{
+  const name = document.getElementById('rev-name').value.trim();
+  const text = document.getElementById('rev-text').value.trim();
+  const errEl = document.getElementById('rev-err');
+  if(!pickedStars || !text){ errEl.style.display='block'; return; }
+  errEl.style.display='none';
+  saveUserReview({ name: name || 'Anonyme', stars: pickedStars, text });
+  renderReviews();
+  document.getElementById('rev-name').value='';
+  document.getElementById('rev-text').value='';
+  pickedStars = 0; paintStars(0);
+  const thanks = document.getElementById('thanks');
+  thanks.classList.add('show');
+  thanks.scrollIntoView({behavior:'smooth',block:'center'});
+  setTimeout(()=>thanks.classList.remove('show'), 3500);
+});
+
+renderReviews();
+</script>
+</body>
+</html>
